@@ -1,5 +1,8 @@
 import random
 
+MAX_WIDTH = 20
+MAX_HEIGHT = 20
+
 
 class Grid:
     def __init__(self, width: int, height: int, mines: int, initial_tile: tuple):
@@ -29,7 +32,13 @@ class Grid:
                 if not self.mines:
                     break
 
-        self.fill_initial_tile(initial_tile, 'O')  # reverts placeholders to '0'
+        #self.fill_initial_tile(initial_tile, 'O')  # reverts placeholders to '0'
+
+        for row_index, row in enumerate(self.grid):
+            for column_index, column in enumerate(row):
+                if self.grid[row_index][column_index] != 'X':
+                    adj_mines = self.check_neighbors(row_index, column_index)
+                    self.grid[row_index][column_index] = f'{adj_mines}'
 
     def __repr__(self):
         string = ''
@@ -52,3 +61,20 @@ class Grid:
                     self.grid[row_index][column_index] = element
                 except IndexError:
                     pass
+
+    def check_neighbors(self, row, column) -> str:
+        modifiers = [-1, 0, 1]
+        nearby_mines = 0
+        for row_modifier in modifiers:
+            for column_modifier in modifiers:
+                row_index = row + row_modifier
+                column_index = column + column_modifier
+                if row_index >= 0 and column_index >= 0:
+                    try:
+                        neighbor = self.grid[row_index][column_index]
+                        if neighbor == 'X':
+                            nearby_mines += 1
+                    except IndexError:
+                        pass
+        return nearby_mines
+
