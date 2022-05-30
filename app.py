@@ -3,6 +3,8 @@ import pygame
 from grid import Grid
 from square import Square
 
+# Default configuration
+
 width, height = 900, 500
 GAME_NAME = 'Minesweeper'
 FPS = 60
