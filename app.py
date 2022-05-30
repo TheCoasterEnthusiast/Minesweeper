@@ -97,8 +97,10 @@ while run:
                 x = x - board_rect.left
                 y = y - board_rect.top
                 pos = x, y
-                print('mousedown')
+                print(f'mousedown at ({x}, {y})')
 
+
+                # bad search, make binary
                 for row_index, row in enumerate(square_grid):
                     if row[0].rect.top <= y < row[0].rect.bottom:
                         for column_index, square in enumerate(row):
