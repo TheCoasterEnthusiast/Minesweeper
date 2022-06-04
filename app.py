@@ -3,6 +3,8 @@ import pygame
 from grid import Grid
 from square import Square
 
+pygame.font.init()
+
 # Default configuration
 
 width, height = 900, 500
@@ -13,7 +15,7 @@ DEFAULT_COLUMNS = 20
 DEFAULT_MINES = 25
 
 run = True
-game_active = True
+game_active = False
 pygame.init()
 WIN = pygame.display.set_mode((width, height))
 WIN_rect = WIN.get_rect()
@@ -21,6 +23,9 @@ pygame.display.set_caption(GAME_NAME)
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+
+BIG_FONT = pygame.font.SysFont("helvetica", 40)
+SMALL_FONT = pygame.font.SysFont("helvetica", 20)
 
 
 def uncover_adjacent_squares(row, column):
@@ -59,6 +64,9 @@ def draw_window():
         pygame.display.update()
     else:  # menu screen
         WIN.fill(WHITE)
+
+        instructions_text = SMALL_FONT.render("Press space to play!", True, BLACK)
+        WIN.blit(instructions_text, ((width / 2) - (instructions_text.get_width() / 2), (height / 2) + 50))
         pygame.display.update()
 
 
@@ -67,6 +75,9 @@ square_grid = []
 
 modifiers = [-1, 0, 1]
 
+
+
+# creates initial board
 WIN.fill(BLACK)
 board = pygame.Surface((width - 100, height - 100))
 board_rect = board.get_rect(center=((width / 2), (height / 2)))
