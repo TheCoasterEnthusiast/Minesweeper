@@ -13,6 +13,7 @@ FPS = 60
 DEFAULT_ROWS = 10
 DEFAULT_COLUMNS = 20
 DEFAULT_MINES = 25
+current_mines = DEFAULT_MINES
 
 run = True
 game_active = False
@@ -26,6 +27,10 @@ BLACK = (0, 0, 0)
 
 BIG_FONT = pygame.font.SysFont("helvetica", 40)
 SMALL_FONT = pygame.font.SysFont("helvetica", 20)
+
+instructions_text = SMALL_FONT.render("Press space to play!", True, BLACK)
+mine_num_text = SMALL_FONT.render(str(current_mines), True, WHITE)
+mine_num_text_rect = mine_num_text.get_rect(center=(450, 30))
 
 
 def uncover_adjacent_squares(row, column):
@@ -46,6 +51,11 @@ def uncover_adjacent_squares(row, column):
                 pass
 
 
+def update_bomb_num(current_mines: int, change: int) -> pygame.Surface:
+    current_mines += change
+    return SMALL_FONT.render(str(current_mines), True, WHITE)
+
+
 def lose_game():
     for row_index, row in enumerate(current_grid.grid):
         for column_index, column in enumerate(row):
@@ -53,13 +63,15 @@ def lose_game():
                 square_grid[row_index][column_index].texture_key = 'X'
 
 
-def draw_window():
+def draw_window(mine_num_text):
     if game_active:  # game board
         WIN.fill(BLACK)
 
         square_group.draw(board)
         square_group.update()
         WIN.blit(board, board_rect)
+
+        WIN.blit(mine_num_text, mine_num_text_rect)
 
         pygame.display.update()
     else:  # menu screen
@@ -74,7 +86,6 @@ square_group = pygame.sprite.Group()
 square_grid = []
 
 modifiers = [-1, 0, 1]
-
 
 
 # creates initial board
@@ -110,8 +121,6 @@ while run:
                 x = x - board_rect.left
                 y = y - board_rect.top
                 pos = x, y
-                print(f'mousedown at ({x}, {y})')
-
 
                 # bad search, make binary
                 for row_index, row in enumerate(square_grid):
@@ -119,6 +128,7 @@ while run:
                         for column_index, square in enumerate(row):
                             if square.rect.left <= x < square.rect.right:
                                 try:
+                                    # if a non-flag square is clicked, change texture
                                     if buttons[0] and square.texture_key != 'F':
                                         square.texture_key = current_grid.grid[square.row][square.column]
                                         if square.texture_key == '0':
@@ -126,8 +136,14 @@ while run:
                                         elif square.texture_key == 'X':
                                             lose_game()
 
-                                    elif buttons[2]:
+                                    elif buttons[2] and square.texture_key != 'F':
                                         square.texture_key = 'F'
+                                        mine_num_text = update_bomb_num(current_mines, -1)
+                                        current_mines -= 1
+                                    elif buttons[2] and square.texture_key == 'F':
+                                        square.texture_key = 'C'
+                                        mine_num_text = update_bomb_num(current_mines, 1)
+                                        current_mines += 1
                                     break
                                 except NameError:
                                     initial_tile = (square.row, square.column)
@@ -143,5 +159,5 @@ while run:
                 if event.key == pygame.K_SPACE:
                     game_active = True
 
-        draw_window()
+        draw_window(mine_num_text)
 pygame.quit()
