@@ -19,7 +19,9 @@ start_time = 0
 pause_time = 0
 pause_start_time = 0
 pause_end_time = 0
+score = 0
 game_started = False
+win = False
 
 run = True
 game_active = False
@@ -36,22 +38,27 @@ LIGHT_GRAY = (160, 160, 160)
 
 # Fonts
 BIG_FONT = pygame.font.SysFont("helvetica", 40)
+MEDIUM_FONT = pygame.font.SysFont("helvetica", 30)
 SMALL_FONT = pygame.font.SysFont("helvetica", 20)
 
 # Starting screen
 instructions_text = SMALL_FONT.render("Press space to play!", True, BLACK)
 
 # Game screen
-time_text = BIG_FONT.render("0 sec", True, WHITE)
-time_text_rect = time_text.get_rect(center=(WIN_rect.width * .25, 30))
+time_text = MEDIUM_FONT.render("0 sec", True, WHITE)
+time_text_rect = time_text.get_rect(center=(WIN_rect.width * .25, 27))
 time_frame_rect = pygame.Rect(time_text_rect.left - 3, 3, time_text_rect.width + 6, 44)
 
 mine_frame_rect = pygame.Rect((WIN_rect.width * .75) - 75, 3, 105, 44)
 mine_icon = pygame.image.load('assets/bomb_icon.png').convert_alpha()
 mine_icon = pygame.transform.smoothscale(mine_icon, (40, 40))
 mine_icon_rect = mine_icon.get_rect(center=((WIN_rect.width * .75) - 50, 25))
-mine_num_text = BIG_FONT.render(str(current_mines), True, WHITE)
-mine_num_text_rect = mine_num_text.get_rect(center=(WIN_rect.width * .75, 30))
+mine_num_text = MEDIUM_FONT.render(str(current_mines), True, WHITE)
+mine_num_text_rect = mine_num_text.get_rect(center=(WIN_rect.width * .75, 27))
+
+win_rect = pygame.Rect(325, 125, 250, 250)
+win_text = BIG_FONT.render("You Win!", True, BLACK)
+win_text_rect = win_text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) - 75))
 
 
 def uncover_adjacent_squares(row, column):
@@ -75,21 +82,26 @@ def uncover_adjacent_squares(row, column):
     return uncovered
 
 
-def check_win(uncovered, uncovered_max):
-    return uncovered == uncovered_max
+def check_win():
+    covered = 0
+    for row in square_grid:
+        for square in row:
+            if square.texture_key == "C" or square.texture_key == "F":
+                covered += 1
+    return covered == DEFAULT_MINES
 
 
 def update_time() -> (pygame.Surface, pygame.Rect):
     current_time = pygame.time.get_ticks()
     game_time = (current_time - start_time) - pause_time
     game_time = "{:.2f}".format(game_time / 1000)
-    time_text = BIG_FONT.render(f"{game_time} sec", True, WHITE)
-    time_text_rect = time_text.get_rect(center=(WIN_rect.width * .25, 30))
-    return time_text, time_text_rect
+    time_text = MEDIUM_FONT.render(f"{game_time} sec", True, WHITE)
+    time_text_rect = time_text.get_rect(center=(WIN_rect.width * .25, 27))
+    return time_text, time_text_rect, game_time
 
 
 def update_bomb_num(current_mines: int) -> pygame.Surface:
-    return BIG_FONT.render(str(current_mines), True, WHITE)
+    return MEDIUM_FONT.render(str(current_mines), True, WHITE)
 
 
 def update_time_frame_rect(text_rect: pygame.Rect) -> pygame.Rect:
@@ -112,7 +124,7 @@ def draw_window(mine_num_text):
         square_group.update()
         WIN.blit(board, board_rect)
 
-        player_text, player_text_rect = update_time()
+        player_text, player_text_rect, time = update_time()
         pygame.draw.rect(WIN, LIGHT_GRAY, update_time_frame_rect(player_text_rect), border_radius=10)
         if game_started:
             WIN.blit(player_text, player_text_rect)
@@ -122,6 +134,15 @@ def draw_window(mine_num_text):
         pygame.draw.rect(WIN, LIGHT_GRAY, mine_frame_rect, border_radius=10)
         WIN.blit(mine_icon, mine_icon_rect)
         WIN.blit(mine_num_text, mine_num_text_rect)
+
+        if win:
+            pygame.draw.rect(WIN, WHITE, win_rect, border_radius=15)
+            WIN.blit(win_text, win_text_rect)
+
+            score_text = SMALL_FONT.render(f"Your time: {score} sec", True, BLACK)
+            score_text_rect = score_text.get_rect(center=(WIN_rect.width / 2, WIN_rect.height / 2))
+            WIN.blit(score_text, score_text_rect)
+
 
         pygame.display.update()
     else:  # menu screen
@@ -187,7 +208,7 @@ while run:
                                         elif square.texture_key == 'X':
                                             lose_game()
 
-                                    elif buttons[2] and square.texture_key != 'F':
+                                    elif buttons[2] and square.texture_key == 'C':
                                         square.texture_key = 'F'
                                         current_mines -= 1
                                         mine_num_text = update_bomb_num(current_mines)
@@ -207,8 +228,12 @@ while run:
                                     if square.texture_key == '0':
                                         uncovered = uncover_adjacent_squares(square.row, square.column)
                                     break
-                if check_win(uncovered, UNCOVERED_MAX):
+                if check_win():
                     print("Win!")
+                    win = True
+                    text, rect, time = update_time()
+                    score = time
+
         else:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
