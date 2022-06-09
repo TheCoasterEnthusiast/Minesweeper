@@ -13,6 +13,8 @@ DEFAULT_ROWS = 10
 DEFAULT_COLUMNS = 20
 DEFAULT_MINES = 30
 current_mines = DEFAULT_MINES
+uncovered = 0
+UNCOVERED_MAX = (DEFAULT_ROWS * DEFAULT_COLUMNS) - DEFAULT_MINES
 start_time = 0
 pause_time = 0
 pause_start_time = 0
@@ -53,6 +55,7 @@ mine_num_text_rect = mine_num_text.get_rect(center=(WIN_rect.width * .75, 30))
 
 
 def uncover_adjacent_squares(row, column):
+    uncovered = 0
     for row_modifier in modifiers:
         for column_modifier in modifiers:
             row_index = row + row_modifier
@@ -62,12 +65,18 @@ def uncover_adjacent_squares(row, column):
                     print(f'Adjacent square: {square_grid[row_index][column_index]}')
                     adjacent_square = square_grid[row_index][column_index]
                     if adjacent_square.texture_key == 'C':
+                        uncovered += 1
                         print(f'Uncovered adjacent square: {square_grid[row_index][column_index]}')
                         adjacent_square.texture_key = current_grid.grid[row_index][column_index]
                         if adjacent_square.texture_key == '0':
-                            uncover_adjacent_squares(adjacent_square.row, adjacent_square.column)
+                            uncovered += uncover_adjacent_squares(adjacent_square.row, adjacent_square.column)
             except IndexError:
                 pass
+    return uncovered
+
+
+def check_win(uncovered, uncovered_max):
+    return uncovered == uncovered_max
 
 
 def update_time() -> (pygame.Surface, pygame.Rect):
@@ -170,10 +179,11 @@ while run:
                             if square.rect.left <= x < square.rect.right:
                                 try:
                                     # if a non-flag square is clicked, change texture
-                                    if buttons[0] and square.texture_key != 'F':
+                                    if buttons[0] and square.texture_key == 'C':
                                         square.texture_key = current_grid.grid[square.row][square.column]
+                                        uncovered += 1
                                         if square.texture_key == '0':
-                                            uncover_adjacent_squares(square.row, square.column)
+                                            uncovered += uncover_adjacent_squares(square.row, square.column)
                                         elif square.texture_key == 'X':
                                             lose_game()
 
@@ -195,9 +205,10 @@ while run:
 
                                     square.texture_key = current_grid.grid[square.row][square.column]
                                     if square.texture_key == '0':
-                                        uncover_adjacent_squares(square.row, square.column)
+                                        uncovered = uncover_adjacent_squares(square.row, square.column)
                                     break
-
+                if check_win(uncovered, UNCOVERED_MAX):
+                    print("Win!")
         else:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
