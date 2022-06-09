@@ -51,8 +51,7 @@ def uncover_adjacent_squares(row, column):
                 pass
 
 
-def update_bomb_num(current_mines: int, change: int) -> pygame.Surface:
-    current_mines += change
+def update_bomb_num(current_mines: int) -> pygame.Surface:
     return SMALL_FONT.render(str(current_mines), True, WHITE)
 
 
@@ -138,12 +137,12 @@ while run:
 
                                     elif buttons[2] and square.texture_key != 'F':
                                         square.texture_key = 'F'
-                                        mine_num_text = update_bomb_num(current_mines, -1)
                                         current_mines -= 1
+                                        mine_num_text = update_bomb_num(current_mines)
                                     elif buttons[2] and square.texture_key == 'F':
                                         square.texture_key = 'C'
-                                        mine_num_text = update_bomb_num(current_mines, 1)
                                         current_mines += 1
+                                        mine_num_text = update_bomb_num(current_mines)
                                     break
                                 except NameError:
                                     initial_tile = (square.row, square.column)
