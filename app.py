@@ -14,6 +14,7 @@ FPS = 60
 DEFAULT_ROWS = 10
 DEFAULT_COLUMNS = 20
 DEFAULT_MINES = 2
+hearts = 3
 current_mines = DEFAULT_MINES
 start_time = 0
 pause_time = 0
@@ -49,6 +50,10 @@ instructions_text = SMALL_FONT.render("Press space to play!", True, BLACK)
 time_text = MEDIUM_FONT.render("0 sec", True, WHITE)
 time_text_rect = time_text.get_rect(center=(WIN_rect.width * .25, 27))
 time_frame_rect = pygame.Rect(time_text_rect.left - 3, 3, time_text_rect.width + 6, 44)
+
+heart_icon = pygame.image.load('assets/heart.png').convert_alpha()
+heart_icon = pygame.transform.smoothscale(heart_icon, (40, 40))
+left_heart_icon_rect = heart_icon.get_rect(center=((WIN_rect.width / 2) - 20, 25))
 
 mine_frame_rect = pygame.Rect((WIN_rect.width * .75) - 75, 3, 105, 44)
 mine_icon = pygame.image.load('assets/bomb_icon.png').convert_alpha()
@@ -138,6 +143,10 @@ def draw_window(mine_num_text, score):
             WIN.blit(player_text, player_text_rect)
         else:
             WIN.blit(time_text, time_text_rect)
+
+        # draw hearts
+        for i in range(hearts):
+            WIN.blit(heart_icon, heart_icon.get_rect(center=(left_heart_icon_rect.x + (i * 40), 25)))
 
         # draw mine icon and number
         pygame.draw.rect(WIN, LIGHT_GRAY, mine_frame_rect, border_radius=10)
