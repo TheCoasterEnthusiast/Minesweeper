@@ -119,10 +119,8 @@ def uncover_adjacent_squares(row, column):
             column_index = column + column_modifier
             try:
                 if row_index >= 0 and column_index >= 0 and (row, column) != (row_index, column_index):
-                    print(f'Adjacent square: {square_grid[row_index][column_index]}')
                     adjacent_square = square_grid[row_index][column_index]
                     if adjacent_square.texture_key == 'C':
-                        print(f'Uncovered adjacent square: {square_grid[row_index][column_index]}')
                         adjacent_square.texture_key = current_grid.grid[row_index][column_index]
                         if adjacent_square.texture_key == '0':
                             uncover_adjacent_squares(adjacent_square.row, adjacent_square.column)
