@@ -1,8 +1,10 @@
 import pygame
 
+from typing import Dict
+
 from grid import Grid
 from square import Square
-from storage import write_new_score, get_scores
+from storage import get_scores, write_new_score, get_question_deque
 
 pygame.font.init()
 
@@ -10,10 +12,11 @@ pygame.font.init()
 width, height = 900, 500
 GAME_NAME = 'Minesweeper'
 modifiers = [-1, 0, 1]
+letters = ['a', 'b', 'c', 'd']
 FPS = 60
 DEFAULT_ROWS = 10
 DEFAULT_COLUMNS = 20
-DEFAULT_MINES = 2
+DEFAULT_MINES = 30
 hearts = 3
 current_mines = DEFAULT_MINES
 start_time = 0
@@ -21,8 +24,12 @@ pause_time = 0
 pause_start_time = 0
 pause_end_time = 0
 score = 0
+current_question = Dict
 game_started = False
 win = False
+question = False
+question_answered = False
+lose_game = False
 
 run = True
 game_active = False
@@ -37,11 +44,14 @@ BLACK = (0, 0, 0)
 GRAY = (110, 110, 110)
 LIGHT_GRAY = (160, 160, 160)
 LIGHT_BLUE = (3, 211, 252)
+LIGHT_GREEN = (172, 255, 128)
+LIGHT_RED = (245, 81, 81)
 
 # Fonts
 BIG_FONT = pygame.font.SysFont("helvetica", 40)
 MEDIUM_FONT = pygame.font.SysFont("helvetica", 30)
 SMALL_FONT = pygame.font.SysFont("helvetica", 20)
+SUPER_SMALL_FONT = pygame.font.SysFont("helvetica", 14)
 
 # Starting screen
 instructions_text = SMALL_FONT.render("Press space to play!", True, BLACK)
@@ -49,7 +59,9 @@ instructions_text = SMALL_FONT.render("Press space to play!", True, BLACK)
 # Game screen
 time_text = MEDIUM_FONT.render("0 sec", True, WHITE)
 time_text_rect = time_text.get_rect(center=(WIN_rect.width * .25, 27))
-time_frame_rect = pygame.Rect(time_text_rect.left - 3, 3, time_text_rect.width + 6, 44)
+time_frame_rect = pygame.Rect(time_text_rect.left - 3, 13, time_text_rect.width + 6, 44)
+pause_text = MEDIUM_FONT.render("0 sec", True, WHITE)
+pause_text_rect = pygame.Rect(time_text_rect.left - 3, 13, time_text_rect.width + 6, 44)
 
 heart_icon = pygame.image.load('assets/heart.png').convert_alpha()
 heart_icon = pygame.transform.smoothscale(heart_icon, (40, 40))
@@ -62,12 +74,36 @@ mine_icon_rect = mine_icon.get_rect(center=((WIN_rect.width * .75) - 50, 25))
 mine_num_text = MEDIUM_FONT.render(str(current_mines), True, WHITE)
 mine_num_text_rect = mine_num_text.get_rect(center=(WIN_rect.width * .75, 27))
 
+# win screen
 win_rect = pygame.Rect(325, 75, 250, 350)
 win_text = BIG_FONT.render("You Win!", True, BLACK)
 win_text_rect = win_text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) - 125))
-
 continue_text = SMALL_FONT.render("(Press space to continue)", True, BLACK)
 continue_text_rect = continue_text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) + 155))
+
+# question screen
+question_rect = pygame.Rect(113, 75, WIN_rect.width * .75, 340)
+answer_a_rect = pygame.Rect(133, 115, 635, 50)
+answer_b_rect = pygame.Rect(133, 180, 635, 50)
+answer_c_rect = pygame.Rect(133, 245, 635, 50)
+answer_d_rect = pygame.Rect(133, 310, 635, 50)
+box_list = [answer_a_rect, answer_b_rect, answer_c_rect, answer_d_rect]
+box_dict = {
+    0: 'A',
+    1: 'B',
+    2: 'C',
+    3: 'D'
+}
+box_a_clicked = False
+box_b_clicked = False
+box_c_clicked = False
+box_d_clicked = False
+box_clicked_list = [box_a_clicked, box_b_clicked, box_c_clicked, box_d_clicked]
+question_continue_text = SUPER_SMALL_FONT.render("(Press enter to continue)", True, BLACK)
+question_continue_text_rect = question_continue_text.get_rect(top=answer_d_rect.bottom + 10, left=answer_d_rect.left + 400)
+
+# lose screen
+
 
 
 def uncover_adjacent_squares(row, column):
@@ -120,6 +156,20 @@ def get_highlight_rect(text_rect: pygame.Rect) -> pygame.Rect:
     return highlight_rect
 
 
+def hover(rect, i):
+    if box_clicked_list[i]:
+        if current_question['answer'] == box_dict[i]:
+            return LIGHT_GREEN
+        else:
+            return LIGHT_RED
+    else:
+        pos = pygame.mouse.get_pos()
+        if rect.collidepoint(pos):
+            return LIGHT_GRAY
+        else:
+            return WHITE
+
+
 def lose_game():
     for row_index, row in enumerate(current_grid.grid):
         for column_index, column in enumerate(row):
@@ -137,12 +187,13 @@ def draw_window(mine_num_text, score):
         WIN.blit(board, board_rect)
 
         # draw clock
-        player_text, player_text_rect, time = update_time()
-        pygame.draw.rect(WIN, LIGHT_GRAY, update_time_frame_rect(player_text_rect), border_radius=10)
-        if game_started and not win:
+        if game_started and not win and not question:
+            player_text, player_text_rect, time = update_time()
+            pygame.draw.rect(WIN, LIGHT_GRAY, update_time_frame_rect(player_text_rect), border_radius=10)
             WIN.blit(player_text, player_text_rect)
         else:
-            WIN.blit(time_text, time_text_rect)
+            pygame.draw.rect(WIN, LIGHT_GRAY, update_time_frame_rect(pause_text_rect), border_radius=10)
+            WIN.blit(pause_text, pause_text_rect)
 
         # draw hearts
         for i in range(hearts):
@@ -179,6 +230,37 @@ def draw_window(mine_num_text, score):
             # draw continue text
             WIN.blit(continue_text, continue_text_rect)
 
+        # draw question
+        elif question:
+            pygame.draw.rect(WIN, WHITE, question_rect, border_radius=15)
+
+            question_text = SMALL_FONT.render(current_question['question'], True, BLACK)
+            question_text_rect = question_text.get_rect(center=(WIN_rect.width / 2, 100))
+            WIN.blit(question_text, question_text_rect)
+
+            pygame.draw.rect(WIN, hover(answer_a_rect, 0), answer_a_rect, border_radius=10)
+            pygame.draw.rect(WIN, hover(answer_b_rect, 1), answer_b_rect, border_radius=10)
+            pygame.draw.rect(WIN, hover(answer_c_rect, 2), answer_c_rect, border_radius=10)
+            pygame.draw.rect(WIN, hover(answer_d_rect, 3), answer_d_rect, border_radius=10)
+
+            for i in letters:
+                if i == 'a':
+                    answer_text = SMALL_FONT.render(current_question['a'], True, BLACK)
+                    answer_text_rect = answer_text.get_rect(left=150, top=130)
+                    last_rect = answer_text_rect
+                else:
+                    answer_text = SMALL_FONT.render(current_question[i], True, BLACK)
+                    answer_text_rect = answer_text.get_rect(left=150, top=last_rect.top + 65)
+                    last_rect = answer_text_rect
+                WIN.blit(answer_text, answer_text_rect)
+
+            if question_answered:
+                pygame.draw.rect(WIN, LIGHT_GRAY, win_rect, border_radius=15)
+
+        # draw losing screen
+        elif lose_game:
+            pygame.draw.rect(WIN)
+
         pygame.display.update()
     else:  # menu screen
         WIN.fill(WHITE)
@@ -190,6 +272,7 @@ def draw_window(mine_num_text, score):
 square_group = pygame.sprite.Group()
 square_grid = []
 
+question_deque = get_question_deque()
 
 WIN.fill(BLACK)
 board = pygame.Surface((width - 100, height - 100))
@@ -218,6 +301,11 @@ while run:
                     game_active = False
                     pause_start_time = pygame.time.get_ticks()
 
+                if event.key == pygame.K_RETURN and question_answered:
+                    question = False
+                    question_answered = False
+                    box_clicked_list = [False, False, False, False]
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = pygame.mouse.get_pos()
                 buttons = pygame.mouse.get_pressed()
@@ -225,7 +313,7 @@ while run:
                 y = y - board_rect.top
                 pos = x, y
 
-                if not win:
+                if not win and not question: # disables board interaction during win or question
                     # bad search, make binary
                     for row_index, row in enumerate(square_grid):
                         if row[0].rect.top <= y < row[0].rect.bottom:
@@ -238,7 +326,15 @@ while run:
                                             if square.texture_key == '0':
                                                 uncover_adjacent_squares(square.row, square.column)
                                             elif square.texture_key == 'X':
-                                                lose_game()
+                                                if hearts:
+                                                    hearts -= 1
+                                                    question = True
+                                                    current_question = question_deque.popleft()
+                                                    question_deque.append(current_question)
+                                                    pause_text, pause_text_rect, _ = update_time()
+                                                else:
+                                                    lose_game()
+                                                    lose_game = True
 
                                         elif buttons[2] and square.texture_key == 'C':
                                             square.texture_key = 'F'
@@ -266,6 +362,16 @@ while run:
                         score = float(time)
                         write_new_score(score)
 
+                # if click during question mode, mark box as clicked
+                elif question:
+                    pos = pygame.mouse.get_pos()
+                    for i, box in enumerate(box_list):
+                        if box.collidepoint(pos):
+                            box_clicked_list[i] = True
+
+                            if current_question['answer'] == box_dict[i]:
+                                question_answered = True
+
         else:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and not win:
@@ -282,6 +388,8 @@ while run:
                     # draw new board
                     square_group = pygame.sprite.Group()
                     square_grid = []
+
+                    question_deque = get_question_deque()
 
                     WIN.fill(BLACK)
                     board = pygame.Surface((width - 100, height - 100))
