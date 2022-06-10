@@ -103,7 +103,10 @@ question_continue_text = SUPER_SMALL_FONT.render("(Press enter to continue)", Tr
 question_continue_text_rect = question_continue_text.get_rect(top=answer_d_rect.bottom + 10, left=answer_d_rect.left + 400)
 
 # lose screen
-
+lose_text_big = MEDIUM_FONT.render('You lose!', True, BLACK)
+lose_text_big_rect = lose_text_big.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) - 125))
+lose_text = SMALL_FONT.render('Better luck next time!', True, BLACK)
+lose_text_rect = lose_text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2)))
 
 
 def uncover_adjacent_squares(row, column):
@@ -170,7 +173,7 @@ def hover(rect, i):
             return WHITE
 
 
-def lose_game():
+def lose_game_func():
     for row_index, row in enumerate(current_grid.grid):
         for column_index, column in enumerate(row):
             if column == 'X':
@@ -187,7 +190,7 @@ def draw_window(mine_num_text, score):
         WIN.blit(board, board_rect)
 
         # draw clock
-        if game_started and not win and not question:
+        if game_started and not win and not question and not lose_game:
             player_text, player_text_rect, time = update_time()
             pygame.draw.rect(WIN, LIGHT_GRAY, update_time_frame_rect(player_text_rect), border_radius=10)
             WIN.blit(player_text, player_text_rect)
@@ -204,6 +207,7 @@ def draw_window(mine_num_text, score):
         WIN.blit(mine_icon, mine_icon_rect)
         WIN.blit(mine_num_text, mine_num_text_rect)
 
+        # draw win screen
         if win:
             pygame.draw.rect(WIN, LIGHT_BLUE, win_rect, border_radius=15)
             WIN.blit(win_text, win_text_rect)
@@ -255,11 +259,14 @@ def draw_window(mine_num_text, score):
                 WIN.blit(answer_text, answer_text_rect)
 
             if question_answered:
-                pygame.draw.rect(WIN, LIGHT_GRAY, win_rect, border_radius=15)
+                WIN.blit(question_continue_text, question_continue_text_rect)
 
         # draw losing screen
         elif lose_game:
-            pygame.draw.rect(WIN)
+            pygame.draw.rect(WIN, LIGHT_GRAY, win_rect, border_radius=15)
+            WIN.blit(lose_text_big, lose_text_big_rect)
+            WIN.blit(lose_text, lose_text_rect)
+            WIN.blit(continue_text, continue_text_rect)
 
         pygame.display.update()
     else:  # menu screen
@@ -333,7 +340,7 @@ while run:
                                                     question_deque.append(current_question)
                                                     pause_text, pause_text_rect, _ = update_time()
                                                 else:
-                                                    lose_game()
+                                                    lose_game_func()
                                                     lose_game = True
 
                                         elif buttons[2] and square.texture_key == 'C':
@@ -374,16 +381,18 @@ while run:
 
         else:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and not win:
+                if event.key == pygame.K_SPACE and not win and not lose_game:
                     game_active = True
                     pause_end_time = pygame.time.get_ticks()
                     if game_started:
                         pause_time += pause_end_time - pause_start_time
 
-                elif event.key == pygame.K_SPACE and win:
+                elif event.key == pygame.K_SPACE and (win or lose_game):
                     win = False
                     game_active = True
                     game_started = False
+
+                    lose_game = False
 
                     # draw new board
                     square_group = pygame.sprite.Group()
