@@ -37,6 +37,8 @@ pygame.init()
 WIN = pygame.display.set_mode((width, height))
 WIN_rect = WIN.get_rect()
 pygame.display.set_caption(GAME_NAME)
+icon = pygame.image.load('assets/bomb_icon.png')
+pygame.display.set_icon(icon)
 
 # Colors
 WHITE = (255, 255, 255)
