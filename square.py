@@ -30,3 +30,5 @@ class Square(pygame.sprite.Sprite):
 
     def update(self):
         self.update_image()
+
+# rescaling is a mistake!

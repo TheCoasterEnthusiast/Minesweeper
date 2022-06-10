@@ -31,3 +31,5 @@ class TestGrid(TestCase):
                     pass
 
         self.assertEqual(0, total_mines)
+
+# unit testing

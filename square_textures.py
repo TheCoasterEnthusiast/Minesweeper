@@ -14,3 +14,5 @@ class SquareTextures:
                        '6': pygame.image.load('assets/six_square.png'),
                        '7': pygame.image.load('assets/seven_square.png'),
                        }
+
+# Square textures key

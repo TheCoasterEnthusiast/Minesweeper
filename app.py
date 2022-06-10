@@ -54,6 +54,7 @@ SMALL_FONT = pygame.font.SysFont("helvetica", 20)
 SUPER_SMALL_FONT = pygame.font.SysFont("helvetica", 14)
 
 # Starting screen
+background = pygame.image.load('assets/title.png').convert_alpha()
 instructions_text = SMALL_FONT.render("Press space to play!", True, BLACK)
 
 # Game screen
@@ -270,7 +271,7 @@ def draw_window(mine_num_text, score):
 
         pygame.display.update()
     else:  # menu screen
-        WIN.fill(WHITE)
+        WIN.blit(background, (0, 0))
 
         WIN.blit(instructions_text, ((WIN_rect.width / 2) - (instructions_text.get_width() / 2), (WIN_rect.height / 2) + 50))
         pygame.display.update()
@@ -281,7 +282,7 @@ square_grid = []
 
 question_deque = get_question_deque()
 
-WIN.fill(BLACK)
+WIN.blit(background, (0, 0))
 board = pygame.Surface((width - 100, height - 100))
 board_rect = board.get_rect(center=((width / 2), (height / 2)))
 for row in range(DEFAULT_ROWS):
@@ -355,8 +356,11 @@ while run:
                                     except NameError:
                                         initial_tile = (square.row, square.column)
                                         current_grid = Grid(DEFAULT_COLUMNS, DEFAULT_ROWS, DEFAULT_MINES, initial_tile)
-                                        print(current_grid)
                                         start_time = pygame.time.get_ticks()
+                                        pause_time = 0
+                                        pause_start_time = 0
+                                        pause_end_time = 0
+                                        current_mines = DEFAULT_MINES
                                         game_started = True
 
                                         square.texture_key = current_grid.grid[square.row][square.column]
@@ -400,7 +404,7 @@ while run:
 
                     question_deque = get_question_deque()
 
-                    WIN.fill(BLACK)
+                    WIN.blit(background, (0, 0))
                     board = pygame.Surface((width - 100, height - 100))
                     board_rect = board.get_rect(center=((width / 2), (height / 2)))
                     for row in range(DEFAULT_ROWS):

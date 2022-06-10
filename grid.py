@@ -78,3 +78,4 @@ class Grid:
                         pass
         return nearby_mines
 
+# Grids are fun!
