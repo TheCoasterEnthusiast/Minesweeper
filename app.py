@@ -9,6 +9,7 @@ pygame.font.init()
 # Default configuration
 width, height = 900, 500
 GAME_NAME = 'Minesweeper'
+modifiers = [-1, 0, 1]
 FPS = 60
 DEFAULT_ROWS = 10
 DEFAULT_COLUMNS = 20
@@ -59,6 +60,9 @@ mine_num_text_rect = mine_num_text.get_rect(center=(WIN_rect.width * .75, 27))
 win_rect = pygame.Rect(325, 75, 250, 350)
 win_text = BIG_FONT.render("You Win!", True, BLACK)
 win_text_rect = win_text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) - 125))
+
+continue_text = SMALL_FONT.render("(Press space to continue)", True, BLACK)
+continue_text_rect = continue_text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) + 155))
 
 
 def uncover_adjacent_squares(row, column):
@@ -154,7 +158,7 @@ def draw_window(mine_num_text, score):
                 num = i + 1
                 text = SMALL_FONT.render(f'{num}. {scores[i]}', True, BLACK)
                 if i == 0:
-                    rect = text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) - 30))
+                    rect = text.get_rect(center=(WIN_rect.width / 2, (WIN_rect.height / 2) - 50))
                     last_rect = rect
                 else:
                     rect = text.get_rect(top=last_rect.bottom, left=last_rect.left)
@@ -162,6 +166,9 @@ def draw_window(mine_num_text, score):
                 if float(play_time) == score:
                     pygame.draw.rect(WIN, WHITE, get_highlight_rect(last_rect), border_radius=10)
                 WIN.blit(text, rect)
+
+            # draw continue text
+            WIN.blit(continue_text, continue_text_rect)
 
         pygame.display.update()
     else:  # menu screen
@@ -174,10 +181,7 @@ def draw_window(mine_num_text, score):
 square_group = pygame.sprite.Group()
 square_grid = []
 
-modifiers = [-1, 0, 1]
 
-
-# creates initial board
 WIN.fill(BLACK)
 board = pygame.Surface((width - 100, height - 100))
 board_rect = board.get_rect(center=((width / 2), (height / 2)))
@@ -212,53 +216,78 @@ while run:
                 y = y - board_rect.top
                 pos = x, y
 
-                # bad search, make binary
-                for row_index, row in enumerate(square_grid):
-                    if row[0].rect.top <= y < row[0].rect.bottom:
-                        for column_index, square in enumerate(row):
-                            if square.rect.left <= x < square.rect.right:
-                                try:
-                                    # if a non-flag square is clicked, change texture
-                                    if buttons[0] and square.texture_key == 'C':
+                if not win:
+                    # bad search, make binary
+                    for row_index, row in enumerate(square_grid):
+                        if row[0].rect.top <= y < row[0].rect.bottom:
+                            for column_index, square in enumerate(row):
+                                if square.rect.left <= x < square.rect.right:
+                                    try:
+                                        # if a non-flag square is clicked, change texture
+                                        if buttons[0] and square.texture_key == 'C':
+                                            square.texture_key = current_grid.grid[square.row][square.column]
+                                            if square.texture_key == '0':
+                                                uncover_adjacent_squares(square.row, square.column)
+                                            elif square.texture_key == 'X':
+                                                lose_game()
+
+                                        elif buttons[2] and square.texture_key == 'C':
+                                            square.texture_key = 'F'
+                                            current_mines -= 1
+                                            mine_num_text = update_bomb_num(current_mines)
+                                        elif buttons[2] and square.texture_key == 'F':
+                                            square.texture_key = 'C'
+                                            current_mines += 1
+                                            mine_num_text = update_bomb_num(current_mines)
+                                        break
+                                    except NameError:
+                                        initial_tile = (square.row, square.column)
+                                        current_grid = Grid(DEFAULT_COLUMNS, DEFAULT_ROWS, DEFAULT_MINES, initial_tile)
+                                        print(current_grid)
+                                        start_time = pygame.time.get_ticks()
+                                        game_started = True
+
                                         square.texture_key = current_grid.grid[square.row][square.column]
                                         if square.texture_key == '0':
                                             uncover_adjacent_squares(square.row, square.column)
-                                        elif square.texture_key == 'X':
-                                            lose_game()
-
-                                    elif buttons[2] and square.texture_key == 'C':
-                                        square.texture_key = 'F'
-                                        current_mines -= 1
-                                        mine_num_text = update_bomb_num(current_mines)
-                                    elif buttons[2] and square.texture_key == 'F':
-                                        square.texture_key = 'C'
-                                        current_mines += 1
-                                        mine_num_text = update_bomb_num(current_mines)
-                                    break
-                                except NameError:
-                                    initial_tile = (square.row, square.column)
-                                    current_grid = Grid(DEFAULT_COLUMNS, DEFAULT_ROWS, DEFAULT_MINES, initial_tile)
-                                    print(current_grid)
-                                    start_time = pygame.time.get_ticks()
-                                    game_started = True
-
-                                    square.texture_key = current_grid.grid[square.row][square.column]
-                                    if square.texture_key == '0':
-                                        uncover_adjacent_squares(square.row, square.column)
-                                    break
-                if check_win():
-                    win = True
-                    text, rect, time = update_time()
-                    score = float(time)
-                    write_new_score(score)
+                                        break
+                    if check_win():
+                        win = True
+                        text, rect, time = update_time()
+                        score = float(time)
+                        write_new_score(score)
 
         else:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
+                if event.key == pygame.K_SPACE and not win:
                     game_active = True
                     pause_end_time = pygame.time.get_ticks()
                     if game_started:
                         pause_time += pause_end_time - pause_start_time
+
+                elif event.key == pygame.K_SPACE and win:
+                    win = False
+                    game_active = True
+                    game_started = False
+
+                    # draw new board
+                    square_group = pygame.sprite.Group()
+                    square_grid = []
+
+                    WIN.fill(BLACK)
+                    board = pygame.Surface((width - 100, height - 100))
+                    board_rect = board.get_rect(center=((width / 2), (height / 2)))
+                    for row in range(DEFAULT_ROWS):
+                        y = row * (board_rect.height / DEFAULT_ROWS)
+                        square_grid.append([])
+                        for column in range(DEFAULT_COLUMNS):
+                            x = column * (board_rect.width / DEFAULT_COLUMNS)
+                            square = Square(x, y, int(board_rect.width / DEFAULT_COLUMNS), row, column)
+                            board.blit(square.image, square.rect)
+                            square_group.add(square)
+                            square_grid[row].append(square)
+
+                    del current_grid
 
     draw_window(mine_num_text, score)
 pygame.quit()
