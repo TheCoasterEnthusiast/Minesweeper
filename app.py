@@ -395,7 +395,7 @@ while run:
                     win = False
                     game_active = True
                     game_started = False
-
+                    hearts = 3
                     lose_game = False
 
                     # draw new board
